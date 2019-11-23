@@ -16,12 +16,11 @@
 #define KRESET "\x1B[0m"
 #define KBLU   "\x1B[34m"
 #define KCYN   "\x1B[36m"
+#define KYEL   "\x1B[33m"
 #define LINESIZE 64
+#define clear() printf("\033[H\033[J") 
 
 char *my_read_line(void) {
-    /* 
-        return char
-    */
     char *line = NULL;  
     size_t bufsize = 0;  
     getline(&line, &bufsize, stdin);
@@ -30,11 +29,6 @@ char *my_read_line(void) {
 
 
 char **my_split_line(char *line) {
-
-    /*
-        @param: line
-        @return: array of tokens parsed from line
-    */
 
     int bufsize = LINESIZE;
     int position = 0;
@@ -62,14 +56,12 @@ char **my_split_line(char *line) {
         }
         pch = strtok (NULL, " \t\n");
     }
-
     tokens[position] = NULL; // array terminated with NULL element
     return tokens; // return array
 
-
 }
 
-int my_launch(char **args) {
+int my_exec(char **args) {
 
     pid_t pid, wait_p;
     int status;
@@ -82,21 +74,75 @@ int my_launch(char **args) {
     }
 
     if (pid == 0) { // child process 
-
         if(execvp(args[0], args) == -1) { // execute file, -1 in error
             perror(KRED "error executing");
         }
         return 2;
-
     }
 
     while ((wait_p = wait(&status)) != -1) // waiting child process
     {
         // printf("Process %lu returned result: %d\n", (unsigned long) wait_p, status);
     }
-
-
     return 1;
+
+}
+
+void help() {
+    puts(
+        KYEL"\n***********" KBLU "GCM SHELL" KYEL "*************\n"
+        KYEL"\n*****" KBLU "OS COURSE 2019 | ESPOL" KYEL"******\n"
+        KYEL"\n*********************************\n" KRESET
+        "\n List of commands supported:"
+        "\n-cd"
+        "\n-exit"
+        "\n-help"
+        "\n-hello"
+        "\n-All general UNIX commands"
+    );
+}
+
+int handleBuiltin(char **args) {
+
+    int n_builtin = 4, i, p_arg = 0;
+    char* builtin_list[n_builtin];  // list of builtin commands
+
+    builtin_list[0] = "exit";
+    builtin_list[1] = "cd";
+    builtin_list[2] = "help";
+    builtin_list[3] = "hello";
+
+    for (i = 0; i < n_builtin; i++) {
+        if (strcmp(args[0], builtin_list[i]) == 0) {
+            p_arg = i + 1;
+            break;
+        }
+    }
+
+    switch (p_arg)
+    {
+    case 1:
+        printf(KYEL "Good bye ;) \n");
+        exit(0);
+        break;
+    
+    case 2:
+        chdir(args[1]);
+        return 1;
+
+    case 3:
+        help();
+        return 1;
+
+    case 4:
+        printf("Hello friend...\n\n");
+        return 1;
+
+    default:
+        break;
+    }
+
+    return 0;
 
 }
 
@@ -106,13 +152,20 @@ void my_loop(void) {
     char *line;
     char **tokens;
     int status;
+    char cwd[1024];
 
     do {
-        printf(KCYN "SO|201411870|gcm_sh:>> " KRESET);
+
+        getcwd(cwd, sizeof(cwd)); // get current directory
+        printf(KCYN "SO|201411870|gcm_sh:" KYEL "%s" KCYN ">> " KRESET, cwd);
         line = my_read_line();  // get user line
-        // printf("You typed %s \n", line);
         tokens = my_split_line(line);
-        status = my_launch(tokens);
+        
+        if (handleBuiltin(tokens)) {
+            status = 1;
+        } else {
+            status = my_exec(tokens);
+        }
 
         free(line);
         free(tokens);
@@ -124,8 +177,18 @@ void my_loop(void) {
 
 int main(int argc, char **argv) {
 
-    my_loop();
+    clear();
+    printf(KYEL "*********************************\n");
+    printf(KYEL "*********************************\n");
+    printf(KYEL "*********************************\n");
+    printf(KBLU "************GCM SHELL************\n");
+    printf(KBLU "     * USE AT YOUR OWN RISK *    \n");
+    printf(KYEL "*********************************\n");
+    printf(KYEL "*********************************\n");
+    printf(KYEL "*********************************\n");
+    printf("\n\n");
 
+    my_loop();
     return 0;
 
 }
