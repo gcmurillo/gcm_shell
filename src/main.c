@@ -97,9 +97,65 @@ void help() {
         "\n-cd"
         "\n-exit"
         "\n-help"
-        "\n-hello"
+        "\n-iwc -> beautiful version of wc"
         "\n-All general UNIX commands"
     );
+}
+
+int iwc(char **args) {
+
+    int i = 1;
+    int w = 0;
+    int l = 0;
+    int file = 0;
+    char* file_name;
+
+    do {
+        
+        if (i > 3) {
+            printf(KRED "iwc: to many arguments\n");
+            return -1;
+        }
+
+        if (args[i] != NULL) {
+            if (strchr(args[i], '-')) {
+                
+                if (strchr(args[i], 'w')) {
+                    w++;
+                } else if (strchr(args[i], 'l')) {
+                    l++;
+                } else {
+                    printf(KRED "iwc: Unknown arg %s\n", args[i]);
+                    return -1;
+                }
+
+            } else {
+                if (!file) {
+                    file_name = args[i];
+                    file++;
+                } else {
+                    printf(KRED "iwc: Only a file name allowed\n");
+                    return -1;
+                }
+                
+            }
+        } else {
+            printf(KRED "iwc: what about the file name and args? :(\n");
+            return -1;
+        }
+        
+        i++;
+
+    } while (args[i] != NULL);
+
+    if (!file) {
+        printf(KRED "iwc: where is the file?\n");
+        return -1;
+    }
+    printf("\n%s \n", file_name);
+    
+    printf("%d - %d\n", w, l);
+
 }
 
 int handleBuiltin(char **args) {
@@ -110,7 +166,7 @@ int handleBuiltin(char **args) {
     builtin_list[0] = "exit";
     builtin_list[1] = "cd";
     builtin_list[2] = "help";
-    builtin_list[3] = "hello";
+    builtin_list[3] = "iwc";
 
     for (i = 0; i < n_builtin; i++) {
         if (strcmp(args[0], builtin_list[i]) == 0) {
@@ -135,7 +191,7 @@ int handleBuiltin(char **args) {
         return 1;
 
     case 4:
-        printf("Hello friend...\n\n");
+        iwc(args);
         return 1;
 
     default:
