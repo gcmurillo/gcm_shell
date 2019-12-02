@@ -104,12 +104,13 @@ void help() {
 
 int iwc(char **args) {
 
-    int i = 1;
-    int w = 0;
-    int l = 0;
-    int file = 0;
+
+    FILE *fp;
+
+    int i = 1, w = 0, l = 0, j = 0, words = 0, lines = 0, file = 0, c;
     char* file_name;
 
+    // start reading args
     do {
         
         if (i > 3) {
@@ -118,15 +119,23 @@ int iwc(char **args) {
         }
 
         if (args[i] != NULL) {
-            if (strchr(args[i], '-')) {
+            if (args[i][0] == '-') {
+
+                j = 1;
                 
-                if (strchr(args[i], 'w')) {
-                    w++;
-                } else if (strchr(args[i], 'l')) {
-                    l++;
-                } else {
-                    printf(KRED "iwc: Unknown arg %s\n", args[i]);
-                    return -1;
+                while (args[i][j]) {
+                    if (args[i][j] == 'w') {
+                        w++;
+                    } else if (args[i][j] == 'l') {
+                        l++;
+                    } else if (!args[i][1]) {
+                        printf(KRED "iwc: Where is the flag w or l?\n");
+                        return -1;
+                    } else {
+                        printf(KRED "iwc: Unknown arg %s\n", &args[i][j]);
+                        return -1;
+                    }
+                    j++;
                 }
 
             } else {
@@ -147,14 +156,48 @@ int iwc(char **args) {
         i++;
 
     } while (args[i] != NULL);
+    // end reading args
 
+    // open file
     if (!file) {
         printf(KRED "iwc: where is the file?\n");
         return -1;
+    } else {
+        fp = fopen(file_name, "r");
+        if (!fp) {
+            printf(KRED "error reading file %s\n", file_name);
+            return -1;
+        } 
     }
-    printf("\n%s \n", file_name);
+
+    // flags
+    if (w == 0 && l == 0) {
+        w++;
+        l++;
+    }
     
-    printf("%d - %d\n", w, l);
+    while ((c = getc(fp)) != EOF) {
+        // putchar(c);
+        if (c == (unsigned char)' ') {
+            words++;
+        }
+        if (c == (unsigned char)'\n') {
+            lines++;
+            words++;
+        }
+    } 
+
+    if (l > 0) {
+        printf("\n%s has %d lines\n", file_name, lines);
+    }
+    if (w > 0) {
+        printf("\n%s has %d words\n", file_name, words);
+    }
+    printf("\n"); 
+
+    fclose(fp);
+    return 0;
+    
 
 }
 
@@ -167,6 +210,7 @@ int handleBuiltin(char **args) {
     builtin_list[1] = "cd";
     builtin_list[2] = "help";
     builtin_list[3] = "iwc";
+    builtin_list[4] = "twc";
 
     for (i = 0; i < n_builtin; i++) {
         if (strcmp(args[0], builtin_list[i]) == 0) {
@@ -194,6 +238,10 @@ int handleBuiltin(char **args) {
         iwc(args);
         return 1;
 
+    case 5:
+        printf("Did you mean iwc?");
+        return 1;
+
     default:
         break;
     }
@@ -213,7 +261,7 @@ void my_loop(void) {
     do {
 
         getcwd(cwd, sizeof(cwd)); // get current directory
-        printf(KCYN "SO|201411870|gcm_sh:" KYEL "%s" KCYN ">> " KRESET, cwd);
+        printf(KCYN "SO|201411870|gcm_sh:" KYEL "%s" KCYN "$ " KRESET, cwd);
         line = my_read_line();  // get user line
         tokens = my_split_line(line);
         
@@ -237,8 +285,8 @@ int main(int argc, char **argv) {
     printf(KYEL "*********************************\n");
     printf(KYEL "*********************************\n");
     printf(KYEL "*********************************\n");
-    printf(KBLU "************GCM SHELL************\n");
-    printf(KBLU "     * USE AT YOUR OWN RISK *    \n");
+    printf(KBLU "*           GCM SHELL           *\n");
+    printf(KBLU "*      USE AT YOUR OWN RISK     *\n");
     printf(KYEL "*********************************\n");
     printf(KYEL "*********************************\n");
     printf(KYEL "*********************************\n");
