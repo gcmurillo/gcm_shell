@@ -143,6 +143,13 @@ void help() {
     );
 }
 
+
+/* 
+ * Function: count_lines
+ * ---------------------
+ * Thread function for count lines. Given an FD as argument.
+ * Using fgets to get line by line.
+ */
 void *count_lines (void *args) {
 
     int lines = 0;
@@ -156,6 +163,13 @@ void *count_lines (void *args) {
     printf(" %d lines", lines);
 
 }
+
+/*
+ * Function: count_words
+ * ---------------------
+ * Thread function for count words. Given a FD as argument.
+ * Use strtok to split the lines and get words to count.
+ */
 
 void *count_words (void *args) {
 
@@ -177,32 +191,46 @@ void *count_words (void *args) {
 
 }
 
+/*
+ * Function: iwc
+ * -------------
+ * Builtin version for wc. Use two flags -w and -l, using threads
+ * -w flag prints in stdin the number of words in a given file.
+ * -l flag prints in stdin the number of lines in a given file.
+ * 
+ * Usage: 
+ *      The args given are file name and the flags, is validated that 3 are the max number of args
+ * 
+ * args: Filename and flags
+ * 
+ */
+
 int iwc(char **args) {
 
 
-    FILE *fp1, *fp2;
+    FILE *fp1, *fp2; // File pointers
 
-    int i = 1, w = 0, l = 0, j = 0, words = 0, lines = 0, file = 0, c;
-    char* file_name;
+    int i = 1, w = 0, l = 0, j = 0, file = 0; // flags, iterators 
+    char* file_name; // file to read
 
-    pthread_t lines_thread;
+    pthread_t lines_thread; // threads 
     pthread_t words_thread;
 
     // start reading args
     do {
         
-        if (i > 3) {
+        if (i > 3) {  // validate number of args given
             printf(KRED "iwc: to many arguments\n");
             return -1;
         }
 
         if (args[i] != NULL) {
-            if (args[i][0] == '-') {
+            if (args[i][0] == '-') { // if arg init with '-'
 
                 j = 1;
                 
-                while (args[i][j]) {
-                    if (args[i][j] == 'w') {
+                while (args[i][j]) { // validate for -wl case of use
+                    if (args[i][j] == 'w') { 
                         w++;
                     } else if (args[i][j] == 'l') {
                         l++;
@@ -216,7 +244,7 @@ int iwc(char **args) {
                     j++;
                 }
 
-            } else {
+            } else { // if is not a flag, is a file name
                 if (!file) {
                     file_name = args[i];
                     file++;
@@ -226,7 +254,7 @@ int iwc(char **args) {
                 }
                 
             }
-        } else {
+        } else { // if not args 
             printf(KRED "iwc: what about the file name and args? :(\n");
             return -1;
         }
@@ -258,7 +286,7 @@ int iwc(char **args) {
     
     printf("\n%s has", file_name);
 
-    if (l > 0) {
+    if (l > 0) {  // creating and join lines thread
 
         if (pthread_create(&lines_thread, NULL, count_lines, fp1)) {
             printf(KRED "Error creating count lines thread");
@@ -270,12 +298,12 @@ int iwc(char **args) {
         }
 
     }
-    if (w > 0) {
+    if (w > 0) {  // creating and join words thread
         if (pthread_create(&words_thread, NULL, count_words, fp2)) {
             printf(KRED "Error creating count words thread");
         }
 
-        if(pthread_join(lines_thread, NULL)) {
+        if(pthread_join(words_thread, NULL)) {
             printf(KRED "Error joining count words thread\n");
             return 2;
         }
@@ -283,12 +311,12 @@ int iwc(char **args) {
     }
     printf("\n"); 
 
-    fclose(fp1);
+    fclose(fp1);  // closing fp
     fclose(fp2);
     return 0;
     
-
 }
+
 
 /*
  * Function: handleBuiltin
