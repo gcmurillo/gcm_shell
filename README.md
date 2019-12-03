@@ -49,6 +49,11 @@ To implement the shell, thinking in interactions, only execute files or programs
 
 To implement `iwc`, the idea is to valid the flags. The user can list the flags in a single flag, like `-wl` or `-lw` to use both. If an unknow flag is mentioned, it returns an error message. 
 
+## Diagrams
+
+!['diagram1](captures/diagram1.png)
+
+
 ## Captures
 
 !['Init'](captures/1.png)
