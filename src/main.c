@@ -1,24 +1,37 @@
 /******************************
- *  @author: Geancarlo Murillo
- * 
- *  @year: 2019
+ *  author: Geancarlo Murillo
+ *  course: Operative Systems | ESPOL II 2019
+ *  year: 2019
+ *  description: A tiny command interpreter with builtin functions (cd, iwc)
 ******************************/
 
 
+// start header's section
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+// end header's section
 
+// define some colors for UI
 #define KRED  "\x1B[31m"
 #define KRESET "\x1B[0m"
 #define KBLU   "\x1B[34m"
 #define KCYN   "\x1B[36m"
 #define KYEL   "\x1B[33m"
-#define LINESIZE 64
+#define LINESIZE 64  // size of line
 #define clear() printf("\033[H\033[J") 
+
+
+/*
+ * Function: my_read_line
+ * ----------------------
+ * Get the line from stdin, with a maximum size (bufsize)
+ * 
+ * returns: line from stdin
+ */
 
 char *my_read_line(void) {
     char *line = NULL;  
@@ -28,10 +41,21 @@ char *my_read_line(void) {
 }
 
 
+/*
+ * Function my_split_line
+ * ----------------------
+ * Split a given line and return an array of those tokens
+ * The last item always is NULL
+ * 
+ * line: line to split
+ * 
+ * returns: Array of tokens
+ */
+
 char **my_split_line(char *line) {
 
-    int bufsize = LINESIZE;
-    int position = 0;
+    int bufsize = LINESIZE;  // maximun size of line
+    int position = 0; // init position for pointer in list
     char **tokens = malloc(bufsize * sizeof(char*)); // init allocation of memory to inputs
     char *pch;  // parsed char
 
@@ -40,9 +64,9 @@ char **my_split_line(char *line) {
         exit(1);
     }
 
-    pch = strtok (line," \t\n"); 
+    pch = strtok (line," \t\n");  // break the str into a series of tokens
     while (pch != NULL) {
-        tokens[position] = pch;
+        tokens[position] = pch; // assing a position for given token 
         position +=1;
 
         if (position >= bufsize) {  // if position is major than predefined line size
@@ -56,10 +80,20 @@ char **my_split_line(char *line) {
         }
         pch = strtok (NULL, " \t\n");
     }
-    tokens[position] = NULL; // array terminated with NULL element
+    tokens[position] = NULL; // array terminated with NULL element - for use execvp in my_exec function
     return tokens; // return array
 
 }
+
+/*
+ * Function: my_exec
+ * -----------------
+ * Execute files using execvp function, given a array terminated with a NULL element.
+ * 
+ * args: Array of arguments, first arg file to execute.
+ * 
+ * return: -1 for error
+ */
 
 int my_exec(char **args) {
 
@@ -70,23 +104,29 @@ int my_exec(char **args) {
 
     if (pid < 0) {  // forking error
         perror(KRED "Creating process");
-        return 2;
+        return -1;
     }
 
     if (pid == 0) { // child process 
         if(execvp(args[0], args) == -1) { // execute file, -1 in error
             perror(KRED "error executing");
         }
-        return 2;
+        return -1;
     }
 
     while ((wait_p = wait(&status)) != -1) // waiting child process
     {
-        // printf("Process %lu returned result: %d\n", (unsigned long) wait_p, status);
+        // waiting
     }
     return 1;
 
 }
+
+/*
+ * Function: help
+ * --------------
+ * Show in stdin a little help message.
+ */
 
 void help() {
     puts(
@@ -201,17 +241,35 @@ int iwc(char **args) {
 
 }
 
+/*
+ * Function: handleBuiltin
+ * -----------------------
+ * Handle the interaction of the user with the command line.
+ * It manage 5 builtin commands:
+ * - exit -> End the command line execution
+ * - cd -> call to chdir system call
+ * - help -> call help function
+ * - iwc -> call iwc function
+ * - twc -> show message
+ * 
+ * args: array of line parsed tokens
+ * 
+ * returns: 1 if first token is a builtin command, else 0
+ */
+
 int handleBuiltin(char **args) {
 
-    int n_builtin = 4, i, p_arg = 0;
+    int n_builtin = 4, i, p_arg = 0; // constant, and iterators
     char* builtin_list[n_builtin];  // list of builtin commands
 
+    // builtin commands
     builtin_list[0] = "exit";
     builtin_list[1] = "cd";
     builtin_list[2] = "help";
     builtin_list[3] = "iwc";
     builtin_list[4] = "twc";
 
+    // looking in args for a builtin command
     for (i = 0; i < n_builtin; i++) {
         if (strcmp(args[0], builtin_list[i]) == 0) {
             p_arg = i + 1;
@@ -219,51 +277,55 @@ int handleBuiltin(char **args) {
         }
     }
 
-    switch (p_arg)
-    {
-    case 1:
-        printf(KYEL "Good bye ;) \n");
-        exit(0);
-        break;
-    
-    case 2:
-        chdir(args[1]);
-        return 1;
+    // cases for each args if find
+    switch (p_arg) {
+        case 1:
+            printf(KYEL "Good bye ;) \n");
+            exit(0);
+            break;
+        
+        case 2:
+            chdir(args[1]);
+            return 1;
 
-    case 3:
-        help();
-        return 1;
+        case 3:
+            help();
+            return 1;
 
-    case 4:
-        iwc(args);
-        return 1;
+        case 4:
+            iwc(args);
+            return 1;
 
-    case 5:
-        printf("Did you mean iwc?");
-        return 1;
+        case 5:
+            printf("Did you mean iwc?");
+            return 1;
 
-    default:
-        break;
+        default:
+            break;
     }
 
     return 0;
 
 }
 
-
+/*
+ * Function: my_loop
+ * -----------------
+ * Main loop of command line program
+ */
 void my_loop(void) {
     
-    char *line;
-    char **tokens;
-    int status;
-    char cwd[1024];
+    char *line; // user input
+    char **tokens; // line parsed
+    int status; // status for commands execution
+    char cwd[1024]; // str for working directory path
 
     do {
 
         getcwd(cwd, sizeof(cwd)); // get current directory
         printf(KCYN "SO|201411870|gcm_sh:" KYEL "%s" KCYN "$ " KRESET, cwd);
         line = my_read_line();  // get user line
-        tokens = my_split_line(line);
+        tokens = my_split_line(line); // get array of tokens from line
         
         if (handleBuiltin(tokens)) {
             status = 1;
@@ -278,6 +340,10 @@ void my_loop(void) {
 
 }
 
+/* 
+ * Function main
+ * -------------
+ */
 
 int main(int argc, char **argv) {
 
