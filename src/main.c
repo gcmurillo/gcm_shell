@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <pthread.h>
 // end header's section
 
 // define some colors for UI
@@ -142,13 +143,50 @@ void help() {
     );
 }
 
+void *count_lines (void *args) {
+
+    int lines = 0;
+    char str[300];
+    FILE *fp = (FILE*) args;
+
+    while (fgets(str, sizeof(str), fp)) {
+        lines++;
+    }
+
+    printf(" %d lines", lines);
+
+}
+
+void *count_words (void *args) {
+
+    int words = 0;
+    char str[300];
+    char *token_words;
+    FILE *fp = (FILE*) args;
+
+    while (fgets(str, sizeof(str), fp)) {
+       token_words = strtok(str, " \t\n");
+
+        while (token_words != NULL) {
+            words++;
+            token_words = strtok(NULL, " \t\n");
+        }
+    }
+
+    printf(" %d words\n", words);    
+
+}
+
 int iwc(char **args) {
 
 
-    FILE *fp;
+    FILE *fp1, *fp2;
 
     int i = 1, w = 0, l = 0, j = 0, words = 0, lines = 0, file = 0, c;
     char* file_name;
+
+    pthread_t lines_thread;
+    pthread_t words_thread;
 
     // start reading args
     do {
@@ -203,8 +241,9 @@ int iwc(char **args) {
         printf(KRED "iwc: where is the file?\n");
         return -1;
     } else {
-        fp = fopen(file_name, "r");
-        if (!fp) {
+        fp1 = fopen(file_name, "r");
+        fp2 = fopen(file_name, "r");
+        if (!fp1 || !fp2) {
             printf(KRED "error reading file %s\n", file_name);
             return -1;
         } 
@@ -216,26 +255,36 @@ int iwc(char **args) {
         l++;
     }
     
-    while ((c = getc(fp)) != EOF) {
-        // putchar(c);
-        if (c == (unsigned char)' ') {
-            words++;
-        }
-        if (c == (unsigned char)'\n') {
-            lines++;
-            words++;
-        }
-    } 
+    
+    printf("\n%s has", file_name);
 
     if (l > 0) {
-        printf("\n%s has %d lines\n", file_name, lines);
+
+        if (pthread_create(&lines_thread, NULL, count_lines, fp1)) {
+            printf(KRED "Error creating count lines thread");
+        }
+
+        if(pthread_join(lines_thread, NULL)) {
+            printf(KRED "Error joining count lines thread\n");
+            return 2;
+        }
+
     }
     if (w > 0) {
-        printf("\n%s has %d words\n", file_name, words);
+        if (pthread_create(&words_thread, NULL, count_words, fp2)) {
+            printf(KRED "Error creating count words thread");
+        }
+
+        if(pthread_join(lines_thread, NULL)) {
+            printf(KRED "Error joining count words thread\n");
+            return 2;
+        }
+
     }
     printf("\n"); 
 
-    fclose(fp);
+    fclose(fp1);
+    fclose(fp2);
     return 0;
     
 
